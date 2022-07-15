@@ -1,4 +1,12 @@
+import mu.KotlinLogging
 
+private val logger = KotlinLogging.logger {}
 fun main(args: Array<String>) {
-    println("Hello World!")
+    val server = Server()
+    server.start()
+
+    Runtime.getRuntime().addShutdownHook(Thread {
+        server.stop()
+        logger.info("Server stopped")
+    })
 }
