@@ -1,6 +1,7 @@
 package keepie
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import keepie.config.ServiceItem
 import mu.KLogging
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -10,7 +11,7 @@ import utils.ignoreAllSSLErrors
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class KeepieService {
+class KeepieService(services: List<ServiceItem>) {
 
     companion object : KLogging()
 
@@ -28,17 +29,15 @@ class KeepieService {
         )
         .build()
 
-    private val secretsToServices = mapOf("my-secret" to listOf("my-service"))
-    private val serviceToUrls = mapOf("my-service" to listOf("https://localhost:8080"))
+    private val secretsToServices = mapOf("my-secret" to listOf("service-1"))
+    private val serviceToUrls = services.map{it.name to it}.toMap()
 
     fun sendSecret(secretName: String, replyToUrl: String) {
-        val serviceMaybe = secretsToServices[secretName]?.stream()
-            ?.filter { service ->
-                serviceToUrls[service]?.stream()?.anyMatch { url -> replyToUrl.startsWith(url) } ?: false
-            }
-            ?.findFirst() ?: Optional.empty()
-        if (serviceMaybe.isPresent) {
-            val service = serviceMaybe.get()
+        val serviceNames = secretsToServices[secretName] ?: return
+        val service = serviceNames
+            .mapNotNull { serviceName -> serviceToUrls[serviceName] }
+            .firstOrNull { serviceItem -> serviceItem.targets.stream().anyMatch { url -> replyToUrl.startsWith(url) } }
+        if (service != null) {
             try {
                 val secretValue = generator.generate(64)
                 val request = Request.Builder()
@@ -48,16 +47,16 @@ class KeepieService {
                     .build()
                 httpClient.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-                        logger.info("Successfully send '$secretName' to '$service' via $replyToUrl")
+                        logger.info("Successfully sent'$secretName' to '${service.name}' via $replyToUrl")
                     } else {
-                        logger.warn { "Failed to send '$secretName' to '$service' via $replyToUrl (${response.code})" }
+                        logger.warn { "Failed to send '$secretName' to '${service.name}' via $replyToUrl (${response.code})" }
                     }
                 }
             } catch (ex: Exception) {
-                logger.warn { "Failed to send '$secretName' to '$service' via $replyToUrl due to an exception ${ex.javaClass.simpleName}/${ex.message}" }
+                logger.warn { "Failed to send '$secretName' to '${service.name}' via $replyToUrl due to an exception ${ex.javaClass.simpleName}/${ex.message}" }
             }
         } else {
-            logger.warn { "Refused to send '$secretName' to $replyToUrl. Didn't find service." }
+            logger.warn { "Refused to send '$secretName' to $replyToUrl. Didn't find this url among services configured for this secret: $serviceNames." }
         }
     }
 

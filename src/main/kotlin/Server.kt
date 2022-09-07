@@ -3,7 +3,6 @@ import api.KeepieEndpoint
 import api.KeepieReceiverEndpoint
 import api.TokenEndpoint
 import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.muserver.HttpsConfigBuilder
@@ -15,7 +14,10 @@ import keepie.KeepieService
 import mu.KotlinLogging
 
 
-class Server(private val tokenService: TokenService) {
+class Server(
+    private val tokenService: TokenService,
+    private val keepieService: KeepieService
+) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -29,8 +31,8 @@ class Server(private val tokenService: TokenService) {
             .withHttpsConfig(HttpsConfigBuilder.unsignedLocalhost())
             .addHandler(
                 RestHandlerBuilder.restHandler(
-                    TokenEndpoint(tokenService),
-                    KeepieEndpoint(keepieService = KeepieService()),
+                    TokenEndpoint(tokenService = tokenService),
+                    KeepieEndpoint(keepieService = keepieService),
                     KeepieReceiverEndpoint(),
                     HealthEndpoint()
                 )
