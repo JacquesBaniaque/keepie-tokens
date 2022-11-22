@@ -14,7 +14,15 @@ class KeepieReceiverEndpoint {
 
     @POST
     @Consumes("application/json")
-    fun receiveSecret(secret: Secret) {
-        logger.info("Received secret ${secret.name}:${secret.value}")
+    @Path("/service-1")
+    fun receiveSecretService1(secret: Secret) {
+        logger.info("Received secret for service-1: ${secret.name}:${secret.value}")
+    }
+
+    @POST
+    @Consumes("application/json")
+    @Path("/service-2")
+    fun receiveSecretService2(secret: Secret) {
+        logger.info("Received secret service-2: ${secret.name}:${secret.value}")
     }
 }

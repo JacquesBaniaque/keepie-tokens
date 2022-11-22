@@ -16,7 +16,7 @@
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.version>1.7.0</kotlin.version>
         <java.version>17</java.version>
-        <jacskon.version>2.13.3</jacskon.version>
+        <jacskon.version>2.13.4</jacskon.version>
     </properties>
 
     <dependencies>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>io.muserver</groupId>
             <artifactId>mu-server</artifactId>
-            <version>0.72.15</version>
+            <version>0.72.16</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
