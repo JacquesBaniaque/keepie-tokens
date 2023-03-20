@@ -3,11 +3,11 @@ package keepie
 import com.fasterxml.jackson.databind.ObjectMapper
 import keepie.config.SecretItem
 import keepie.config.ServiceItem
+import keepie.generators.KeepieGenerator
 import mu.KLogging
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.apache.commons.text.RandomStringGenerator
 import utils.ignoreAllSSLErrors
 import java.util.concurrent.TimeUnit
 
@@ -15,7 +15,7 @@ class KeepieService(
     services: List<ServiceItem>,
     secrets: List<SecretItem>,
     servicesToSecrets: Map<String, List<String>>,
-    val generators: Map<String, RandomStringGenerator>
+    val generators: Map<String, KeepieGenerator>
 ) {
 
     companion object : KLogging()
@@ -53,36 +53,40 @@ class KeepieService(
         .also { logger.info("Service to urls: $it") }
 
     fun sendSecret(secretName: String, replyToUrl: String) {
-        val secret = secretsToServices.keys.find { it.name == secretName }
+        val secretItem = secretsToServices.keys.find { it.name == secretName }
             .also { if (it == null) logger.warn { "Unknown secret: $secretName" } } ?: return
-        val generator = generators[secret.generator]
-            .also { if (it == null) logger.warn { "Unknown generator: ${secret.generator}" } } ?: return
-        val serviceNames = secretsToServices[secret] ?: return
-        val service = serviceNames
+        val generator = generators[secretItem.generator]
+            .also { if (it == null) logger.warn { "Unknown generator: ${secretItem.generator}" } } ?: return
+        val serviceNames = secretsToServices[secretItem]
+        if (serviceNames == null) {
+            logger.warn { "Refused to send '$secretName' to $replyToUrl. This secret is not mapped to any service." }
+            return
+        }
+        val serviceItem = serviceNames
             .mapNotNull { serviceName -> serviceToUrls[serviceName] }
             .firstOrNull { serviceItem ->
                 serviceItem.receiversUrls().stream().anyMatch { url -> replyToUrl.startsWith(url) }
             }
-        if (service != null) {
-            try {
-                val secretValue = generator.generate(64)
-                val request = Request.Builder()
-                    .post(mapper.writeValueAsString(Secret(secretName, secretValue)).toRequestBody())
-                    .header("Content-Type", "application/json")
-                    .url(replyToUrl)
-                    .build()
-                httpClient.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        logger.info("Successfully sent '$secretName' to '${service.name}' via $replyToUrl")
-                    } else {
-                        logger.warn { "Failed to send '$secretName' to '${service.name}' via $replyToUrl (${response.code})" }
-                    }
-                }
-            } catch (ex: Exception) {
-                logger.warn { "Failed to send '$secretName' to '${service.name}' via $replyToUrl due to an exception ${ex.javaClass.simpleName}/${ex.message}" }
-            }
-        } else {
+        if (serviceItem == null) {
             logger.warn { "Refused to send '$secretName' to $replyToUrl. Didn't find this url among services configured for this secret: $serviceNames." }
+            return
+        }
+        try {
+            val secret = generator.getSecretValue(secretItem, serviceItem)
+            val request = Request.Builder()
+                .post(mapper.writeValueAsString(secret).toRequestBody())
+                .header("Content-Type", "application/json")
+                .url(replyToUrl)
+                .build()
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    logger.info("Successfully sent '$secretName' to '${serviceItem.name}' via $replyToUrl")
+                } else {
+                    logger.warn { "Failed to send '$secretName' to '${serviceItem.name}' via $replyToUrl (${response.code})" }
+                }
+            }
+        } catch (ex: Exception) {
+            logger.warn { "Failed to send '$secretName' to '${serviceItem.name}' via $replyToUrl due to an exception ${ex.javaClass.simpleName}/${ex.message}" }
         }
     }
 

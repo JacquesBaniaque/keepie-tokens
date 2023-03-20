@@ -7,13 +7,14 @@ import keepie.KeepieService
 import keepie.config.SecretsAccessConfig
 import keepie.config.SecretsConfig
 import keepie.config.ServicesConfig
+import keepie.generators.KeepieGenerator
+import keepie.generators.RandomStringGenerator
 import mu.KotlinLogging
-import org.apache.commons.text.RandomStringGenerator
 import java.time.Duration
 
 private val logger = KotlinLogging.logger {}
 
-fun main(args: Array<String>) {
+fun main() {
     val servicesConfig = ConfigLoaderBuilder.default()
         .addResourceSource("/secrets-config/services.conf")
         .build()
@@ -22,18 +23,12 @@ fun main(args: Array<String>) {
         .addResourceSource("/secrets-config/secrets.conf")
         .build()
         .loadConfigOrThrow<SecretsConfig>()
-        .normalize()
     val secretsAccessConfig = ConfigLoaderBuilder.default()
         .addResourceSource("/secrets-config/secrets-access.conf")
         .build()
         .loadConfigOrThrow<SecretsAccessConfig>()
-    val generators = mapOf("random-string" to RandomStringGenerator.Builder()
-        .withinRange(
-            charArrayOf('a', 'z'),
-            charArrayOf('A', 'Z'),
-            charArrayOf('0', '9')
-        )
-        .build())
+    val generators = listOf<KeepieGenerator>(RandomStringGenerator())
+        .associateBy { it.getName() }
 
     servicesConfig.print()
     secretsConfig.print()
@@ -43,7 +38,8 @@ fun main(args: Array<String>) {
         services = servicesConfig.services,
         secrets = secretsConfig.secrets,
         servicesToSecrets = secretsAccessConfig.servicesToSecrets,
-        generators = generators)
+        generators = generators
+    )
     val tokenService = TokenService(
         Keys.keyPairFor(SignatureAlgorithm.RS256),
         Duration.ofSeconds(10)

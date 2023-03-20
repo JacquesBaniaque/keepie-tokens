@@ -11,5 +11,4 @@ data class SecretsConfig(val secrets: List<SecretItem>) {
         secrets.forEach { logger.info { " - ${it.name} | ${it.serviceRef} | ${it.generator}" } }
     }
 
-    fun normalize() = SecretsConfig(secrets = secrets.map { it.copy(name = it.name ?: it.serviceRef)  })
 }
