@@ -1,7 +1,6 @@
 import api.HealthEndpoint
 import api.KeepieEndpoint
 import api.KeepieReceiverEndpoint
-import api.TokenEndpoint
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -9,13 +8,11 @@ import io.muserver.HttpsConfigBuilder
 import io.muserver.MuServer
 import io.muserver.MuServerBuilder.muServer
 import io.muserver.rest.RestHandlerBuilder
-import jwt.TokenService
 import keepie.KeepieService
 import mu.KotlinLogging
 
 
 class Server(
-    private val tokenService: TokenService,
     private val keepieService: KeepieService
 ) {
 
@@ -31,7 +28,6 @@ class Server(
             .withHttpsConfig(HttpsConfigBuilder.unsignedLocalhost())
             .addHandler(
                 RestHandlerBuilder.restHandler(
-                    TokenEndpoint(tokenService = tokenService),
                     KeepieEndpoint(keepieService = keepieService),
                     KeepieReceiverEndpoint(),
                     HealthEndpoint()

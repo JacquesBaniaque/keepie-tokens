@@ -33,16 +33,6 @@ class KeepieService(
             serviceSecrets.mapNotNull { serviceSecret -> secrets.find { it.name == serviceSecret } }
                 .map { secret -> secret to service }
         }
-        .flatMap { (secret, service) -> // create unique secret if its service to
-            if (secret.serviceRef == null)
-                listOf(secret to service)
-            else {
-                listOf(
-                    secret.copy(name = "$service-to-${secret.serviceRef}") to service,
-                    secret.copy(name = "$service-to-${secret.serviceRef}") to secret.serviceRef
-                )
-            }
-        }
         .groupBy({ (secret, _) -> secret }, { (_, service) -> service })
         .also { secretsToServices ->
             logger.info("Remapped secrets to services:")

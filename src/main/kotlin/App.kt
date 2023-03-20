@@ -1,13 +1,11 @@
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addResourceSource
 import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.security.Keys
-import jwt.TokenService
 import keepie.KeepieService
 import keepie.config.SecretsAccessConfig
 import keepie.config.SecretsConfig
 import keepie.config.ServicesConfig
-import keepie.generators.KeepieGenerator
+import keepie.generators.JwtAuthTokenGenerator
 import keepie.generators.RandomStringGenerator
 import mu.KotlinLogging
 import java.time.Duration
@@ -27,7 +25,10 @@ fun main() {
         .addResourceSource("/secrets-config/secrets-access.conf")
         .build()
         .loadConfigOrThrow<SecretsAccessConfig>()
-    val generators = listOf<KeepieGenerator>(RandomStringGenerator())
+    val generators = listOf(
+        RandomStringGenerator(),
+        JwtAuthTokenGenerator()
+    )
         .associateBy { it.getName() }
 
     servicesConfig.print()
@@ -40,12 +41,7 @@ fun main() {
         servicesToSecrets = secretsAccessConfig.servicesToSecrets,
         generators = generators
     )
-    val tokenService = TokenService(
-        Keys.keyPairFor(SignatureAlgorithm.RS256),
-        Duration.ofSeconds(10)
-    )
     val server = Server(
-        tokenService = tokenService,
         keepieService = keepieService
     )
     server.start()
