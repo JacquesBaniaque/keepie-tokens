@@ -8,7 +8,7 @@ data class SecretsConfig(val secrets: List<SecretItem>) {
 
     fun print() {
         logger.info { "Secrets:" }
-        secrets.forEach { logger.info { " - ${it.name} | ${it.serviceRef} | ${it.generator}" } }
+        secrets.forEach { logger.info { " - ${it.name} | ${it.generator}" } }
     }
 
 }

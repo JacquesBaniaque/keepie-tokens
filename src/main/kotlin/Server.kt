@@ -1,6 +1,5 @@
 import api.HealthEndpoint
 import api.KeepieEndpoint
-import api.KeepieReceiverEndpoint
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -22,14 +21,13 @@ class Server(
 
     private lateinit var server: MuServer
 
-    fun start() {
+    fun start(port: Int = 8080) {
         server = muServer()
-            .withHttpsPort(8080)
+            .withHttpsPort(port)
             .withHttpsConfig(HttpsConfigBuilder.unsignedLocalhost())
             .addHandler(
                 RestHandlerBuilder.restHandler(
                     KeepieEndpoint(keepieService = keepieService),
-                    KeepieReceiverEndpoint(),
                     HealthEndpoint()
                 )
                     .addCustomReader(

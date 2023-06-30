@@ -1,14 +1,12 @@
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addResourceSource
-import io.jsonwebtoken.SignatureAlgorithm
 import keepie.KeepieService
 import keepie.config.SecretsAccessConfig
 import keepie.config.SecretsConfig
 import keepie.config.ServicesConfig
-import keepie.generators.JwtAuthTokenGenerator
+import keepie.generators.KeyPairGenerator
 import keepie.generators.RandomStringGenerator
 import mu.KotlinLogging
-import java.time.Duration
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,7 +25,7 @@ fun main() {
         .loadConfigOrThrow<SecretsAccessConfig>()
     val generators = listOf(
         RandomStringGenerator(),
-        JwtAuthTokenGenerator()
+        KeyPairGenerator()
     )
         .associateBy { it.getName() }
 
